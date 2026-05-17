@@ -91,6 +91,9 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     "noplaylist": True,
     "default_search": "ytsearch1",
 
+    "extract_flat": False,
+    "force_generic_extractor": True,
+
     "cookiefile": "cookies.txt",
 
     "extractor_args": {
@@ -110,7 +113,8 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
         )
     }
 }
-    with YoutubeDL(ydl_opts) as ydl:
+
+with YoutubeDL(ydl_opts) as ydl:
     ydl.cache.remove()
     data = ydl.extract_info(source, download=False)
 
