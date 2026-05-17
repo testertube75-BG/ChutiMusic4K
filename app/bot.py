@@ -85,52 +85,55 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     source = query if YOUTUBE_OR_URL_RE.match(query) else f"ytsearch1:{query}"
 
     ydl_opts = {
-    "format": "bestaudio/best",
+        "format": "bestaudio/best",
 
-    "quiet": True,
-    "no_warnings": True,
-    "skip_download": True,
-    "noplaylist": True,
-    "default_search": "ytsearch1",
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "noplaylist": True,
+        "default_search": "ytsearch1",
 
-    "cookiefile": "cookies.txt",
+        "cookiefile": "cookies.txt",
 
-    "extractor_args": {
-        "youtube": {
-            "player_client": [
-                "android",
-                "web"
-            ]
+        "extractor_args": {
+            "youtube": {
+                "player_client": [
+                    "android",
+                    "web"
+                ]
+            }
+        },
+
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/123.0 Safari/537.36"
+            )
         }
-    },
-
-    "http_headers": {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/123.0 Safari/537.36"
-        )
     }
-}
 
-with YoutubeDL(ydl_opts) as ydl:
-    ydl.cache.remove()
-    data = ydl.extract_info(source, download=False)
+    with YoutubeDL(ydl_opts) as ydl:
+        ydl.cache.remove()
+        data = ydl.extract_info(source, download=False)
 
     if "entries" in data:
         entries = [entry for entry in data.get("entries") or [] if entry]
+
         if not entries:
             raise ValueError("No YouTube result found.")
+
         data = entries[0]
 
     stream_url = data.get("url")
+
     if not stream_url:
         raise ValueError("No playable direct stream URL found.")
 
     return StreamInfo(
         title=data.get("title") or query,
         url=stream_url,
-        webpage_url=data.get("webpage_url") or data.get("original_url") or query,
+        webpage_url=data.get("webpage_url") or query,
         duration=data.get("duration"),
     )
 
