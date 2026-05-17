@@ -84,50 +84,17 @@ def pretty_duration(seconds: Optional[int]) -> str:
 def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     source = query if YOUTUBE_OR_URL_RE.match(query) else f"ytsearch1:{query}"
 
-    ydl_opts = {
-    "quiet": True,
-    "no_warnings": True,
-    "skip_download": True,
-    "noplaylist": True,
-    "default_search": "ytsearch1",
-
-    "extract_flat": False,
-    "force_generic_extractor": True,
-
-    "cookiefile": "cookies.txt",
-
-    "extractor_args": {
-        "youtube": {
-            "player_client": [
-                "android",
-                "web"
-            ]
-        }
-    },
-
-    "http_headers": {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/123.0 Safari/537.36"
-        )
-    }
-}
-
-def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
-    source = query if YOUTUBE_OR_URL_RE.match(query) else f"ytsearch1:{query}"
-
-    ydl_opts = {
-        "format": "bestaudio/best",
+    base_opts = {
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
         "noplaylist": True,
         "default_search": "ytsearch1",
+        "cookiefile": "cookies.txt",
 
         "extractor_args": {
             "youtube": {
-                "player_client": ["android", "web"]
+                "player_client": ["android"]
             }
         },
 
@@ -136,24 +103,54 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
         }
     }
 
-    try:
-        with YoutubeDL(ydl_opts) as ydl:
-            data = ydl.extract_info(source, download=False)
+    clients = ["android", "web", "ios"]
 
-        if "entries" in data:
-            data = next((e for e in data["entries"] if e), None)
+    data = None
+    last_error = None
 
-        if not data:
-            raise ValueError("No result found")
+    for c in clients:
+        try:
+            ydl_opts = dict(base_opts)
+            ydl_opts["extractor_args"] = {
+                "youtube": {
+                    "player_client": [c]
+                }
+            }
 
-        stream_url = data.get("url") or data["formats"][0]["url"]
+            with YoutubeDL(ydl_opts) as ydl:
+                data = ydl.extract_info(source, download=False)
 
-        return StreamInfo(
-            title=data.get("title") or query,
-            url=stream_url,
-            webpage_url=data.get("webpage_url") or query,
-            duration=data.get("duration"),
-        )
+            if data:
+                break
+
+        except Exception as e:
+            last_error = e
+            continue
+
+    if not data:
+        raise ValueError(f"No stream found: {last_error}")
+
+    # playlist / search result fix
+    if isinstance(data, dict) and "entries" in data:
+        data = next((e for e in data["entries"] if e), None)
+
+    if not data:
+        raise ValueError("No valid video data")
+
+    stream_url = (
+        data.get("url")
+        or (data.get("formats", [{}])[0].get("url"))
+    )
+
+    if not stream_url:
+        raise ValueError("No playable URL found")
+
+    return StreamInfo(
+        title=data.get("title") or query,
+        url=stream_url,
+        webpage_url=data.get("webpage_url") or query,
+        duration=data.get("duration"),
+    )
 
     except Exception as e:
         raise ValueError(f"yt-dlp error: {e}")
