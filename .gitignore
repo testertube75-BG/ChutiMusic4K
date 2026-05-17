@@ -1,13 +1,1 @@
-__pycache__/
-*.py[cod]
-.env
-.venv/
-venv/
-env/
-.idea/
-.vscode/
-*.session
-*.session-journal
-downloads/
-temp/
-tmp/
+
