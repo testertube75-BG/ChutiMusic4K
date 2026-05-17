@@ -20,6 +20,11 @@ BOT_TOKEN = os.environ["BOT_TOKEN"]
 STRING_SESSION = os.environ["STRING_SESSION"]
 OWNER_ID = int(os.environ.get("OWNER_ID", "0"))
 PORT = int(os.environ.get("PORT", "10011"))
+YOUTUBE_COOKIES = os.environ.get("YOUTUBE_COOKIES", "")
+
+if YOUTUBE_COOKIES:
+    with open("cookies.txt", "w") as f:
+        f.write(YOUTUBE_COOKIES)
 
 YOUTUBE_OR_URL_RE = re.compile(r"^(https?://|ytsearch\d*:)", re.IGNORECASE)
 
