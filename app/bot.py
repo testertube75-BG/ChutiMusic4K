@@ -10,7 +10,7 @@ from pyrogram import Client, filters
 from pyrogram.enums import ChatType
 from pyrogram.types import Message
 from pytgcalls import PyTgCalls
-from pytgcalls.types import MediaStream
+from pytgcalls.types.input_stream import AudioPiped
 from yt_dlp import YoutubeDL
 
 
@@ -111,14 +111,14 @@ async def resolve_stream(query: str, video: bool = False) -> StreamInfo:
     return await asyncio.to_thread(ytdlp_extract, query, video)
 
 
-def build_media_stream(info: StreamInfo, video: bool = False) -> MediaStream:
-    signature = inspect.signature(MediaStream)
+def build_media_stream(info: StreamInfo, video: bool = False) -> AudioPiped:
+    signature = inspect.signature(AudioPiped)
     kwargs = {}
     if "audio_flags" in signature.parameters:
-        kwargs["audio_flags"] = MediaStream.Flags.AUTO_DETECT
+        kwargs["audio_flags"] = AudioPiped.Flags.AUTO_DETECT
     if "video_flags" in signature.parameters:
-        kwargs["video_flags"] = MediaStream.Flags.AUTO_DETECT if video else MediaStream.Flags.IGNORE
-    return MediaStream(info.url, **kwargs)
+        kwargs["video_flags"] = AudioPiped.Flags.AUTO_DETECT if video else AudioPiped.Flags.IGNORE
+    return AudioPiped(info.url, **kwargs)
 
 
 async def play_next(chat_id: int, video: bool = False) -> Optional[StreamInfo]:
