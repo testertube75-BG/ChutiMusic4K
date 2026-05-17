@@ -123,12 +123,7 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
         "no_warnings": True,
         "skip_download": True,
         "noplaylist": True,
-
-        # IMPORTANT: stable search mode
-        "default_search": "ytsearch",
-
-        # safer extraction (NO FORCE GENERIC)
-        "extract_flat": False,
+        "default_search": "ytsearch1",
 
         "extractor_args": {
             "youtube": {
@@ -141,9 +136,27 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
         }
     }
 
-    with YoutubeDL(ydl_opts) as ydl:
-        data = ydl.extract_info(source, download=False)
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            data = ydl.extract_info(source, download=False)
 
+        if "entries" in data:
+            data = next((e for e in data["entries"] if e), None)
+
+        if not data:
+            raise ValueError("No result found")
+
+        stream_url = data.get("url") or data["formats"][0]["url"]
+
+        return StreamInfo(
+            title=data.get("title") or query,
+            url=stream_url,
+            webpage_url=data.get("webpage_url") or query,
+            duration=data.get("duration"),
+        )
+
+    except Exception as e:
+        raise ValueError(f"yt-dlp error: {e}")
     # handle playlist/search result
     if "entries" in data:
         data = next((e for e in data["entries"] if e), None)
