@@ -78,14 +78,25 @@ def pretty_duration(seconds: Optional[int]) -> str:
 
 def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     source = query if YOUTUBE_OR_URL_RE.match(query) else f"ytsearch1:{query}"
+
     ydl_opts = {
-        "format": "best[height<=720][protocol^=http]/best[protocol^=http]" if video else "bestaudio[protocol^=http]/bestaudio/best",
+        "format": "best[height<=720][protocol^=http]/best[protocol^=http]"
+        if video
+        else "bestaudio[protocol^=http]/bestaudio/best",
+
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
         "noplaylist": True,
         "default_search": "ytsearch1",
+
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android"]
+            }
+        },
     }
+
     with YoutubeDL(ydl_opts) as ydl:
         data = ydl.extract_info(source, download=False)
 
