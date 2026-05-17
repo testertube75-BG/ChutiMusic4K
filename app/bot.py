@@ -111,28 +111,40 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     }
 }
     with YoutubeDL(ydl_opts) as ydl:
-        ydl.cache.remove()
-        data = ydl.extract_info(source, download=False)
+    ydl.cache.remove()
+    data = ydl.extract_info(source, download=False)
 
-    if "entries" in data:
-        entries = [entry for entry in data.get("entries") or [] if entry]
+if "entries" in data:
+    entries = [entry for entry in data.get("entries") or [] if entry]
 
-        if not entries:
-            raise ValueError("No YouTube result found.")
+    if not entries:
+        raise ValueError("No YouTube result found.")
 
-        data = entries[0]
+    data = entries[0]
 
+formats = data.get("formats", [])
+
+stream_url = None
+
+for f in formats:
+    url = f.get("url")
+
+    if url:
+        stream_url = url
+        break
+
+if not stream_url:
     stream_url = data.get("url")
 
-    if not stream_url:
-        raise ValueError("No playable direct stream URL found.")
+if not stream_url:
+    raise ValueError("No playable direct stream URL found.")
 
-    return StreamInfo(
-        title=data.get("title") or query,
-        url=stream_url,
-        webpage_url=data.get("webpage_url") or query,
-        duration=data.get("duration"),
-    )
+return StreamInfo(
+    title=data.get("title") or query,
+    url=stream_url,
+    webpage_url=data.get("webpage_url") or query,
+    duration=data.get("duration"),
+)
 
 
 async def resolve_stream(query: str, video: bool = False) -> StreamInfo:
