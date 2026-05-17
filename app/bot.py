@@ -80,7 +80,6 @@ def pretty_duration(seconds: Optional[int]) -> str:
         return f"{hours}:{minutes:02d}:{sec:02d}"
     return f"{minutes}:{sec:02d}"
 
-
 def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     source = query if YOUTUBE_OR_URL_RE.match(query) else f"ytsearch1:{query}"
 
@@ -92,9 +91,10 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
         "default_search": "ytsearch1",
         "cookiefile": "cookies.txt",
 
+        # IMPORTANT: bot detection reduce
         "extractor_args": {
             "youtube": {
-                "player_client": ["android"]
+                "player_client": ["android", "web"]
             }
         },
 
@@ -104,42 +104,40 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     }
 
     clients = ["android", "web", "ios"]
-
     data = None
     last_error = None
 
     for c in clients:
-    try:
-        ydl_opts = dict(base_opts)
-        ydl_opts["extractor_args"] = {
-            "youtube": {
-                "player_client": [c]
+        try:
+            ydl_opts = dict(base_opts)
+            ydl_opts["extractor_args"] = {
+                "youtube": {"player_client": [c]}
             }
-        }
 
-        with YoutubeDL(ydl_opts) as ydl:
-            data = ydl.extract_info(source, download=False)
+            with YoutubeDL(ydl_opts) as ydl:
+                data = ydl.extract_info(source, download=False)
 
-        if data:
-            break
+            if data:
+                break
 
-    except Exception as e:
-        last_error = e
-        continue
+        except Exception as e:
+            last_error = e
+            continue
 
     if not data:
         raise ValueError(f"No stream found: {last_error}")
 
-    # playlist / search result fix
+    # playlist fix
     if isinstance(data, dict) and "entries" in data:
         data = next((e for e in data["entries"] if e), None)
 
     if not data:
         raise ValueError("No valid video data")
 
+    # URL fix (MOST IMPORTANT)
     stream_url = (
         data.get("url")
-        or (data.get("formats", [{}])[0].get("url"))
+        or (data.get("formats", [{}])[-1].get("url") if data.get("formats") else None)
     )
 
     if not stream_url:
