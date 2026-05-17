@@ -93,7 +93,7 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
         # IMPORTANT: bot bypass layer
         "extractor_args": {
             "youtube": {
-                "player_client": ["android", "web", "ios"]
+                "player_client": ["android", "web"]
             }
         },
 
