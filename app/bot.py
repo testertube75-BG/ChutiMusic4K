@@ -261,12 +261,9 @@ async def start_web_server() -> web.AppRunner:
     return runner
 
 
-async def main() -> None:
+async def start_services():
     await start_web_server()
     print("Web server started")
-
-    await bot.start()
-    print("Bot started")
 
     await assistant.start()
     print("Assistant started")
@@ -274,10 +271,10 @@ async def main() -> None:
     await calls.start()
     print("PyTgCalls started")
 
-    print(f"Bot and health server started on port {PORT}")
-
-    await idle()
-
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(start_services())
+
+    print("Bot started")
+    bot.run()
