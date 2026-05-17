@@ -89,7 +89,7 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
         "skip_download": True,
         "noplaylist": True,
         "default_search": "ytsearch1",
-
+        "cookiefile": "cookies.txt",
         "extractor_args": {
             "youtube": {
                 "player_client": ["android"]
