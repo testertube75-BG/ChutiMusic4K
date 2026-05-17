@@ -23,7 +23,7 @@ PORT = int(os.environ.get("PORT", "10011"))
 YOUTUBE_COOKIES = os.environ.get("YOUTUBE_COOKIES", "")
 
 if YOUTUBE_COOKIES:
-    with open("cookies.txt", "w") as f:
+    with open("cookies.txt", "w", encoding="utf-8") as f:
         f.write(YOUTUBE_COOKIES)
 
 YOUTUBE_OR_URL_RE = re.compile(r"^(https?://|ytsearch\d*:)", re.IGNORECASE)
