@@ -263,10 +263,19 @@ async def start_web_server() -> web.AppRunner:
 
 async def main() -> None:
     await start_web_server()
+    print("Web server started")
+
     await bot.start()
+    print("Bot started")
+
     await assistant.start()
+    print("Assistant started")
+
     await calls.start()
+    print("PyTgCalls started")
+
     print(f"Bot and health server started on port {PORT}")
+
     await asyncio.Event().wait()
 
 
