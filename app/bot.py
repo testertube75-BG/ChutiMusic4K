@@ -85,34 +85,31 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     source = query if YOUTUBE_OR_URL_RE.match(query) else f"ytsearch1:{query}"
 
     ydl_opts = {
-        "format": "bestaudio/best",
+    "quiet": True,
+    "no_warnings": True,
+    "skip_download": True,
+    "noplaylist": True,
+    "default_search": "ytsearch1",
 
-        "quiet": True,
-        "no_warnings": True,
-        "skip_download": True,
-        "noplaylist": True,
-        "default_search": "ytsearch1",
+    "cookiefile": "cookies.txt",
 
-        "cookiefile": "cookies.txt",
-
-        "extractor_args": {
-            "youtube": {
-                "player_client": [
-                    "android",
-                    "web"
-                ]
-            }
-        },
-
-        "http_headers": {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/123.0 Safari/537.36"
-            )
+    "extractor_args": {
+        "youtube": {
+            "player_client": [
+                "android",
+                "web"
+            ]
         }
-    }
+    },
 
+    "http_headers": {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/123.0 Safari/537.36"
+        )
+    }
+}
     with YoutubeDL(ydl_opts) as ydl:
         ydl.cache.remove()
         data = ydl.extract_info(source, download=False)
