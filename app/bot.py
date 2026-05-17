@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from aiohttp import web
-from pyrogram import Client, filters, idle
+from pyrogram import Client, filters
 from pyrogram.enums import ChatType
 from pyrogram.types import Message
 from pytgcalls import PyTgCalls
