@@ -109,23 +109,23 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     last_error = None
 
     for c in clients:
-        try:
-            ydl_opts = dict(base_opts)
-            ydl_opts["extractor_args"] = {
-                "youtube": {
-                    "player_client": [c]
-                }
+    try:
+        ydl_opts = dict(base_opts)
+        ydl_opts["extractor_args"] = {
+            "youtube": {
+                "player_client": [c]
             }
+        }
 
-            with YoutubeDL(ydl_opts) as ydl:
-                data = ydl.extract_info(source, download=False)
+        with YoutubeDL(ydl_opts) as ydl:
+            data = ydl.extract_info(source, download=False)
 
-            if data:
-                break
+        if data:
+            break
 
-        except Exception as e:
-            last_error = e
-            continue
+    except Exception as e:
+        last_error = e
+        continue
 
     if not data:
         raise ValueError(f"No stream found: {last_error}")
