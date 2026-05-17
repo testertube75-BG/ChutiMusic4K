@@ -19,7 +19,7 @@ API_HASH = os.environ["API_HASH"]
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 STRING_SESSION = os.environ["STRING_SESSION"]
 OWNER_ID = int(os.environ.get("OWNER_ID", "0"))
-PORT = int(os.environ.get("PORT", "10000"))
+PORT = int(os.environ.get("PORT", "10011"))
 
 YOUTUBE_OR_URL_RE = re.compile(r"^(https?://|ytsearch\d*:)", re.IGNORECASE)
 
