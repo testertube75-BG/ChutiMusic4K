@@ -2,6 +2,6 @@ pyrogram==2.0.106
 py-tgcalls==1.0.9
 ntgcalls==1.0.2
 tgcrypto==1.2.5
-yt-dlp==2025.05.22
+yt-dlp
 aiohttp==3.12.14
 ffmpeg-python
