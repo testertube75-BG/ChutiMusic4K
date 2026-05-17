@@ -85,9 +85,11 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     source = query if YOUTUBE_OR_URL_RE.match(query) else f"ytsearch1:{query}"
 
     ydl_opts = {
-        "format": "best[height<=720][protocol^=http]/best[protocol^=http]"
-        if video
-        else "bestaudio[protocol^=http]/bestaudio/best",
+        "format": (
+            "bestvideo+bestaudio/best"
+            if video
+            else "bestaudio/best"
+        ),
 
         "quiet": True,
         "no_warnings": True,
