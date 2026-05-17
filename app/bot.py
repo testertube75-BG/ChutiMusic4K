@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from aiohttp import web
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle
 from pyrogram.enums import ChatType
 from pyrogram.types import Message
 from pytgcalls import PyTgCalls
@@ -276,7 +276,7 @@ async def main() -> None:
 
     print(f"Bot and health server started on port {PORT}")
 
-    await asyncio.Event().wait()
+    await idle()
 
 
 if __name__ == "__main__":
