@@ -28,6 +28,8 @@ if YOUTUBE_COOKIES:
     with open("cookies.txt", "w", encoding="utf-8") as f:
         f.write(YOUTUBE_COOKIES)
 
+print("cookies exists:", os.path.exists("cookies.txt"))
+
 YOUTUBE_OR_URL_RE = re.compile(r"^(https?://|ytsearch\d*:)", re.IGNORECASE)
 
 
