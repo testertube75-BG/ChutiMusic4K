@@ -89,41 +89,72 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     source = query if YOUTUBE_OR_URL_RE.match(query) else f"ytsearch1:{query}"
 
     base_opts = {
-    "quiet": True,
-    "no_warnings": True,
-    "skip_download": True,
-    "noplaylist": True,
-    "default_search": "ytsearch1",
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "noplaylist": True,
+        "default_search": "ytsearch1",
 
-    "socket_timeout": 15,
-    "retries": 10,
-    "fragment_retries": 10,
+        # stability
+        "socket_timeout": 20,
+        "retries": 10,
+        "fragment_retries": 10,
 
-    "extractor_args": {
-    "youtubetab": {
-        "skip": ["webpage"]
-    },
-    "youtube": {
-        "player_client": ["android", "web"],
-        "player_skip": ["webpage", "configs"],
-        "visitor_data": VISITOR_DATA
+        # cookies
+        "cookiefile": "cookies.txt",
+
+        # bypass
+        "extractor_args": {
+            "youtubetab": {
+                "skip": ["webpage"]
+            },
+            "youtube": {
+                "player_client": [
+                    "android",
+                    "web",
+                    "tv_embedded"
+                ],
+                "player_skip": [
+                    "webpage",
+                    "configs"
+                ],
+                "visitor_data": VISITOR_DATA
+            }
+        },
+
+        # headers
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0 Safari/537.36"
+            ),
+            "Accept-Language": (
+                "bn-BD,bn;q=0.9,"
+                "en-US;q=0.8,en;q=0.7"
+            )
+        }
     }
-},
 
-    "cookiefile": "cookies.txt",
-
-    "http_headers": {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 Chrome/124 Safari/537.36"
-        ),
-        "Accept-Language": "en-US,en;q=0.9"
-    }
-}
+    # format selector
+    if video:
+    base_opts["format"] = (
+        "bestvideo[height<=360]+bestaudio/"
+        "best[height<=720]/"
+        "best"
+    )
+else:
+    base_opts["format"] = (
+        "bestaudio/"
+        "bestaudio[ext=m4a]/"
+        "bestaudio[ext=webm]/"
+        "worstaudio/"
+        "worst"
+    )
 
     last_error = None
 
-    # retry system (VERY IMPORTANT FOR STABILITY)
+    # retry system
     for _ in range(3):
         try:
             with YoutubeDL(base_opts) as ydl:
@@ -132,16 +163,26 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
             if not data:
                 continue
 
+            # search/playlist support
             if "entries" in data:
                 data = next((e for e in data["entries"] if e), None)
 
             if not data:
                 continue
 
-            # SAFE STREAM URL extraction
+            formats = data.get("formats", [])
+
+            # safest stream extraction
             stream_url = (
                 data.get("url")
-                or (data.get("formats")[-1]["url"] if data.get("formats") else None)
+                or next(
+                    (
+                        f["url"]
+                        for f in reversed(formats)
+                        if f.get("url")
+                    ),
+                    None
+                )
             )
 
             if not stream_url:
@@ -151,18 +192,28 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
                 title=data.get("title") or query,
                 url=stream_url,
                 webpage_url=data.get("webpage_url") or query,
-                duration=data.get("duration"),
+                duration=data.get("duration", 0),
+                thumbnail=data.get("thumbnail"),
             )
 
         except Exception as e:
             last_error = e
             continue
 
-    raise ValueError(f"Stream failed after retries: {last_error}")
+    raise ValueError(
+        f"Stream failed after retries: {last_error}"
+    )
 
 
-async def resolve_stream(query: str, video: bool = False) -> StreamInfo:
-    return await asyncio.to_thread(ytdlp_extract, query, video)
+async def resolve_stream(
+    query: str,
+    video: bool = False
+) -> StreamInfo:
+    return await asyncio.to_thread(
+        ytdlp_extract,
+        query,
+        video
+    )
 
 
 def build_media_stream(info: StreamInfo, video: bool = False) -> AudioPiped:
