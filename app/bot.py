@@ -84,27 +84,36 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     source = query if YOUTUBE_OR_URL_RE.match(query) else f"ytsearch1:{query}"
 
     base_opts = {
-        "quiet": True,
-        "no_warnings": True,
-        "skip_download": True,
-        "noplaylist": True,
-        "default_search": "ytsearch1",
+    "quiet": True,
+    "no_warnings": True,
+    "skip_download": True,
+    "noplaylist": True,
+    "default_search": "ytsearch1",
 
-        # IMPORTANT: bot bypass layer
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android", "web"]
-            }
+    "socket_timeout": 15,
+    "retries": 10,
+    "fragment_retries": 10,
+
+    "extractor_args": {
+        "youtubetab": {
+            "skip": ["webpage"]
         },
-
-        # helps reduce blocking
-        "http_headers": {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 Chrome/120 Safari/537.36"
-            )
+        "youtube": {
+            "player_client": ["android", "web"],
+            "player_skip": ["webpage", "configs"]
         }
+    },
+
+    "cookiefile": "cookies.txt",
+
+    "http_headers": {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 Chrome/124 Safari/537.36"
+        ),
+        "Accept-Language": "en-US,en;q=0.9"
     }
+}
 
     last_error = None
 
