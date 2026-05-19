@@ -95,15 +95,12 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
         "noplaylist": True,
         "default_search": "ytsearch1",
 
-        # stability
         "socket_timeout": 20,
         "retries": 10,
         "fragment_retries": 10,
 
-        # cookies
         "cookiefile": "cookies.txt",
 
-        # bypass
         "extractor_args": {
             "youtubetab": {
                 "skip": ["webpage"]
@@ -122,7 +119,6 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
             }
         },
 
-        # headers
         "http_headers": {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -137,25 +133,23 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     }
 
     # format selector
-    # format selector
-if video:
-    base_opts["format"] = (
-        "bestvideo[height<=720]+bestaudio/"
-        "best[height<=720]/"
-        "best"
-    )
-else:
-    base_opts["format"] = (
-        "bestaudio/"
-        "bestaudio[ext=m4a]/"
-        "bestaudio[ext=webm]/"
-        "worstaudio/"
-        "worst"
-    )
+    if video:
+        base_opts["format"] = (
+            "bestvideo[height<=360]+bestaudio/"
+            "best[height<=360]/"
+            "best"
+        )
+    else:
+        base_opts["format"] = (
+            "bestaudio/"
+            "bestaudio[ext=m4a]/"
+            "bestaudio[ext=webm]/"
+            "worstaudio/"
+            "worst"
+        )
 
     last_error = None
 
-    # retry system
     for _ in range(3):
         try:
             with YoutubeDL(base_opts) as ydl:
@@ -164,7 +158,6 @@ else:
             if not data:
                 continue
 
-            # search/playlist support
             if "entries" in data:
                 data = next((e for e in data["entries"] if e), None)
 
@@ -173,7 +166,6 @@ else:
 
             formats = data.get("formats", [])
 
-            # safest stream extraction
             stream_url = (
                 data.get("url")
                 or next(
