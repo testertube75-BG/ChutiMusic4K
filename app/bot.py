@@ -125,10 +125,7 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
                 "Chrome/124.0 Safari/537.36"
             ),
-            "Accept-Language": (
-                "bn-BD,bn;q=0.9,"
-                "en-US;q=0.8,en;q=0.7"
-            )
+            "Accept-Language": 
         }
     }
 
