@@ -18,11 +18,12 @@ API_ID = int(os.environ["API_ID"])
 API_HASH = os.environ["API_HASH"]
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 STRING_SESSION = os.environ["STRING_SESSION"]
+
 OWNER_ID = int(os.environ.get("OWNER_ID", "0"))
 PORT = int(os.environ.get("PORT", "10011"))
-YOUTUBE_COOKIES = os.environ.get("YOUTUBE_COOKIES", "")
 
-YOUTUBE_COOKIES = os.getenv("YOUTUBE_COOKIES")
+YOUTUBE_COOKIES = os.environ.get("YOUTUBE_COOKIES", "")
+VISITOR_DATA = os.environ.get("VISITOR_DATA", "")
 
 if YOUTUBE_COOKIES:
     with open("cookies.txt", "w", encoding="utf-8") as f:
@@ -105,7 +106,7 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     "youtube": {
         "player_client": ["android", "web"],
         "player_skip": ["webpage", "configs"],
-        "visitor_data": "PASTE_VISITOR_DATA_HERE"
+        "visitor_data": VISITOR_DATA
     }
 },
 
