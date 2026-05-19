@@ -95,14 +95,15 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     "fragment_retries": 10,
 
     "extractor_args": {
-        "youtubetab": {
-            "skip": ["webpage"]
-        },
-        "youtube": {
-            "player_client": ["android", "web"],
-            "player_skip": ["webpage", "configs"]
-        }
+    "youtubetab": {
+        "skip": ["webpage"]
     },
+    "youtube": {
+        "player_client": ["android", "web"],
+        "player_skip": ["webpage", "configs"],
+        "visitor_data": "PASTE_VISITOR_DATA_HERE"
+    }
+},
 
     "cookiefile": "cookies.txt",
 
