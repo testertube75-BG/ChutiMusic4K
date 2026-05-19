@@ -137,9 +137,10 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     }
 
     # format selector
-    if video:
+    # format selector
+if video:
     base_opts["format"] = (
-        "bestvideo[height<=360]+bestaudio/"
+        "bestvideo[height<=720]+bestaudio/"
         "best[height<=720]/"
         "best"
     )
