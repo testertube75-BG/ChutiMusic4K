@@ -8,7 +8,8 @@ from typing import Optional
 from aiohttp import web
 from pyrogram import Client, filters
 from pyrogram.enums import ChatType
-from pyrogram.types import Message
+from pyrogram.errors import UserNotParticipant, ChatAdminRequired, PeerIdInvalid
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from pytgcalls import PyTgCalls
 from pytgcalls.types.input_stream import AudioPiped
 from yt_dlp import YoutubeDL
@@ -21,6 +22,9 @@ STRING_SESSION = os.environ["STRING_SESSION"]
 
 OWNER_ID = int(os.environ.get("OWNER_ID", "0"))
 PORT = int(os.environ.get("PORT", "10011"))
+
+# Force Subscribe Variable (Channel Username without @)
+MUST_JOIN = os.environ.get("MUST_JOIN", "").replace("@", "").strip()
 
 YOUTUBE_COOKIES = os.environ.get("YOUTUBE_COOKIES", "")
 VISITOR_DATA = os.environ.get("VISITOR_DATA", "")
@@ -40,6 +44,7 @@ class StreamInfo:
     url: str
     webpage_url: str
     duration: Optional[int]
+    thumbnail: Optional[str] = None
 
 
 bot = Client(
@@ -61,6 +66,45 @@ calls = PyTgCalls(assistant)
 queues: dict[int, list[StreamInfo]] = {}
 now_playing: dict[int, StreamInfo] = {}
 paused_chats: set[int] = set()
+
+
+async def check_fsub(client: Client, message: Message) -> bool:
+    """Check if the user is subscribed to the mandatory channel."""
+    if not MUST_JOIN:
+        return True
+
+    if message.from_user and message.from_user.id == OWNER_ID:
+        return True
+
+    try:
+        user_id = message.from_user.id if message.from_user else None
+        if not user_id:
+            return True
+
+        await client.get_chat_member(MUST_JOIN, user_id)
+        return True
+    except UserNotParticipant:
+        channel_url = f"https://t.me/{MUST_JOIN}"
+        markup = InlineKeyboardMarkup(
+            [
+                [InlineKeyboardButton("📢 Join Channel", url=channel_url)]
+            ]
+        )
+        await message.reply_text(
+            f"⚠️ **Force Subscribe Required!**\n\n"
+            f"You must join **@{MUST_JOIN}** to play music using this bot.\n"
+            f"Click the button below to join, then try your command again.",
+            reply_markup=markup,
+        )
+        return False
+    except (ChatAdminRequired, PeerIdInvalid):
+        await message.reply_text(
+            f"⚠️ **Admin Error:** Please promote the bot to **Administrator** in **@{MUST_JOIN}** so it can verify subscribers."
+        )
+        return False
+    except Exception as e:
+        print(f"FSub error: {e}")
+        return True
 
 
 def command_arg(message: Message) -> str:
@@ -85,6 +129,7 @@ def pretty_duration(seconds: Optional[int]) -> str:
         return f"{hours}:{minutes:02d}:{sec:02d}"
     return f"{minutes}:{sec:02d}"
 
+
 def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
     source = query if YOUTUBE_OR_URL_RE.match(query) else f"ytsearch1:{query}"
 
@@ -94,55 +139,35 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
         "skip_download": True,
         "noplaylist": True,
         "default_search": "ytsearch1",
-
         "socket_timeout": 20,
         "retries": 10,
         "fragment_retries": 10,
-
-        "cookiefile": "cookies.txt",
-
+        "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None,
         "extractor_args": {
-            "youtubetab": {
-                "skip": ["webpage"]
-            },
+            "youtubetab": {"skip": ["webpage"]},
             "youtube": {
-                "player_client": [
-                    "android",
-                    "web",
-                    "tv_embedded"
-                ],
-                "player_skip": [
-                    "webpage",
-                    "configs"
-                ],
-                "visitor_data": VISITOR_DATA
-            }
+                "player_client": ["android", "web", "tv_embedded"],
+                "player_skip": ["webpage", "configs"],
+                "visitor_data": VISITOR_DATA,
+            },
         },
-
         "http_headers": {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
                 "Chrome/124.0 Safari/537.36"
             ),
-            "Accept-Language": 
-        }
+            "Accept-Language": "en-US,en;q=0.9",
+        },
     }
 
-    # format selector
     if video:
         base_opts["format"] = (
-            "bestvideo[height<=360]+bestaudio/"
-            "best[height<=360]/"
-            "best"
+            "bestvideo[height<=360]+bestaudio/best[height<=360]/best"
         )
     else:
         base_opts["format"] = (
-            "bestaudio/"
-            "bestaudio[ext=m4a]/"
-            "bestaudio[ext=webm]/"
-            "worstaudio/"
-            "worst"
+            "bestaudio/bestaudio[ext=m4a]/bestaudio[ext=webm]/worstaudio/worst"
         )
 
     last_error = None
@@ -163,16 +188,8 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
 
             formats = data.get("formats", [])
 
-            stream_url = (
-                data.get("url")
-                or next(
-                    (
-                        f["url"]
-                        for f in reversed(formats)
-                        if f.get("url")
-                    ),
-                    None
-                )
+            stream_url = data.get("url") or next(
+                (f["url"] for f in reversed(formats) if f.get("url")), None
             )
 
             if not stream_url:
@@ -190,20 +207,11 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
             last_error = e
             continue
 
-    raise ValueError(
-        f"Stream failed after retries: {last_error}"
-    )
+    raise ValueError(f"Stream failed after retries: {last_error}")
 
 
-async def resolve_stream(
-    query: str,
-    video: bool = False
-) -> StreamInfo:
-    return await asyncio.to_thread(
-        ytdlp_extract,
-        query,
-        video
-    )
+async def resolve_stream(query: str, video: bool = False) -> StreamInfo:
+    return await asyncio.to_thread(ytdlp_extract, query, video)
 
 
 def build_media_stream(info: StreamInfo, video: bool = False) -> AudioPiped:
@@ -212,7 +220,9 @@ def build_media_stream(info: StreamInfo, video: bool = False) -> AudioPiped:
     if "audio_flags" in signature.parameters:
         kwargs["audio_flags"] = AudioPiped.Flags.AUTO_DETECT
     if "video_flags" in signature.parameters:
-        kwargs["video_flags"] = AudioPiped.Flags.AUTO_DETECT if video else AudioPiped.Flags.IGNORE
+        kwargs["video_flags"] = (
+            AudioPiped.Flags.AUTO_DETECT if video else AudioPiped.Flags.IGNORE
+        )
     return AudioPiped(info.url, **kwargs)
 
 
@@ -230,13 +240,13 @@ async def play_next(chat_id: int, video: bool = False) -> Optional[StreamInfo]:
 
 async def enqueue_or_play(message: Message, query: str, video: bool = False) -> None:
     if not query:
-        await message.reply_text("Song name ba YouTube link dao.")
+        await message.reply_text("Please provide a song name or YouTube link.")
         return
-    notice = await message.reply_text("YouTube stream khujchi...")
+    notice = await message.reply_text("Searching YouTube stream...")
     try:
         info = await resolve_stream(query, video=video)
     except Exception as exc:
-        await notice.edit_text(f"Stream pawa gelo na: `{exc}`")
+        await notice.edit_text(f"Stream not found: `{exc}`")
         return
 
     chat_id = message.chat.id
@@ -253,7 +263,7 @@ async def enqueue_or_play(message: Message, query: str, video: bool = False) -> 
     except Exception as exc:
         queues[chat_id].clear()
         now_playing.pop(chat_id, None)
-        await notice.edit_text(f"VC te play start holo na: `{exc}`")
+        await notice.edit_text(f"Failed to start VC stream: `{exc}`")
         return
 
     await notice.edit_text(
@@ -263,7 +273,7 @@ async def enqueue_or_play(message: Message, query: str, video: bool = False) -> 
 
 async def ensure_group(message: Message) -> bool:
     if message.chat.type not in {ChatType.GROUP, ChatType.SUPERGROUP}:
-        await message.reply_text("Eta group/supergroup-e use koro.")
+        await message.reply_text("This command can only be used in a group/supergroup.")
         return False
     return True
 
@@ -272,25 +282,29 @@ async def ensure_group(message: Message) -> bool:
 async def start_handler(_, message: Message) -> None:
     await message.reply_text(
         "TG VC Music Bot ready.\n\n"
-        "/play song name - audio play\n"
-        "/vplay song name - video stream play\n"
-        "/skip - next queue\n"
-        "/pause - pause\n"
-        "/resume - resume\n"
-        "/end - stop and leave VC"
+        "/play <song name> - Play audio stream\n"
+        "/vplay <song name> - Play video stream\n"
+        "/skip - Skip to the next queued song\n"
+        "/pause - Pause current stream\n"
+        "/resume - Resume paused stream\n"
+        "/end - Stop playback and leave VC"
     )
 
 
 @bot.on_message(filters.command("play") & filters.group)
-async def play_handler(_, message: Message) -> None:
+async def play_handler(client: Client, message: Message) -> None:
     if not await ensure_group(message):
+        return
+    if not await check_fsub(client, message):
         return
     await enqueue_or_play(message, command_arg(message), video=False)
 
 
 @bot.on_message(filters.command("vplay") & filters.group)
-async def vplay_handler(_, message: Message) -> None:
+async def vplay_handler(client: Client, message: Message) -> None:
     if not await ensure_group(message):
+        return
+    if not await check_fsub(client, message):
         return
     await enqueue_or_play(message, command_arg(message), video=True)
 
@@ -299,21 +313,21 @@ async def vplay_handler(_, message: Message) -> None:
 async def skip_handler(_, message: Message) -> None:
     chat_id = message.chat.id
     if not now_playing.get(chat_id):
-        await message.reply_text("Ekhon kichu play hocche na.")
+        await message.reply_text("Nothing is playing right now.")
         return
     next_info = await play_next(chat_id)
     if next_info:
         await message.reply_text(f"Skipped. Now playing: **{next_info.title}**")
     else:
         await calls.leave_call(chat_id)
-        await message.reply_text("Queue empty. VC theke ber hoye gelam.")
+        await message.reply_text("Queue empty. Left the VC.")
 
 
 @bot.on_message(filters.command("pause") & filters.group)
 async def pause_handler(_, message: Message) -> None:
     chat_id = message.chat.id
     if chat_id not in now_playing:
-        await message.reply_text("Pause korar moto kichu cholche na.")
+        await message.reply_text("Nothing to pause.")
         return
     await calls.pause_stream(chat_id)
     paused_chats.add(chat_id)
@@ -324,7 +338,7 @@ async def pause_handler(_, message: Message) -> None:
 async def resume_handler(_, message: Message) -> None:
     chat_id = message.chat.id
     if chat_id not in paused_chats:
-        await message.reply_text("Paused stream nei.")
+        await message.reply_text("No stream is currently paused.")
         return
     await calls.resume_stream(chat_id)
     paused_chats.discard(chat_id)
@@ -338,7 +352,7 @@ async def end_handler(_, message: Message) -> None:
     now_playing.pop(chat_id, None)
     paused_chats.discard(chat_id)
     await calls.leave_call(chat_id)
-    await message.reply_text("Stopped and left VC.")
+    await message.reply_text("Stopped playback and left VC.")
 
 
 async def health(_request: web.Request) -> web.Response:
@@ -373,3 +387,4 @@ if __name__ == "__main__":
 
     print("Bot started")
     bot.run()
+
