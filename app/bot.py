@@ -40,6 +40,7 @@ class StreamInfo:
     url: str
     webpage_url: str
     duration: Optional[int]
+    thumbnail: Optional[str] = None  # thumbnail ফিল্ডটি যোগ করা হয়েছে
 
 
 bot = Client(
@@ -99,7 +100,7 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
         "retries": 10,
         "fragment_retries": 10,
 
-        "cookiefile": "cookies.txt",
+        "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None,
 
         "extractor_args": {
             "youtubetab": {
@@ -125,11 +126,10 @@ def ytdlp_extract(query: str, video: bool = False) -> StreamInfo:
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
                 "Chrome/124.0 Safari/537.36"
             ),
-            "Accept-Language": 
+            "Accept-Language": "en-US,en;q=0.9"  # Syntax error ঠিক করা হয়েছে
         }
     }
 
-    # format selector
     if video:
         base_opts["format"] = (
             "bestvideo[height<=360]+bestaudio/"
