@@ -5,3 +5,4 @@ tgcrypto==1.2.5
 yt-dlp
 aiohttp==3.12.14
 ffmpeg-python
+python-dotenv
